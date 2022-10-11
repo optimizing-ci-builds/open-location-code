@@ -1,5 +1,5 @@
 name: CI
-on: [push, pull_request, workflow_dispatch]
+on: [push]
 jobs:
   # C implementation. Lives in c/, tested with bazel.
   test-c:
@@ -7,11 +7,85 @@ jobs:
     env:
       OLC_PATH: c
     steps:
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas
+          pip install numpy
+      - run: sudo apt update
+      - run: sudo apt install inotify-tools
+      - run: inotifywait -mr /home/runner/work --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/test.csv & echo 'basak'
+      - run: touch starting_test-c_actionscheckout@v2_10
       - uses: actions/checkout@v2
+      - run: touch starting_test-c_test_11
       - name: test
         run: bazel test --test_output=all ${OLC_PATH}:all
+      - run: touch starting_test-c_checkformatting_13
       - name: check formatting
         run: cd ${OLC_PATH} && bash clang_check.sh
+      - uses: jannekem/run-python-script-action@v1
+        with:
+          script: |
+            import pandas as pd
+            import numpy as np
+            df = pd.read_csv('/home/runner/test.csv', sep = ';', names=['time', 'watched_filename', 'event_filename', 'event_name'])
+            df['event_filename'] = df['event_filename'].replace(np.nan, '')
+            steps = {}
+            starting_indexes = df[(df['event_filename'].str.contains('starting_')) & (df['event_name'] == 'CREATE')].index.to_list() + [df.shape[0]]
+            ending_indexes = [0] + df[(df['event_filename'].str.contains('starting_')) & (df['event_name'] == 'CLOSE_WRITE,CLOSE')].index.to_list()
+            starting_df = df[df['event_filename'].str.contains('starting_')]
+            touch_file_names = ['setup'] + [x.replace('starting_', '') for x in starting_df['event_filename'].value_counts().index.to_list()]
+            for starting_index, ending_index, touch_file_name in zip(starting_indexes, ending_indexes, touch_file_names):
+                steps[touch_file_name] = (ending_index, starting_index)
+            df['watched_filename'] = df['watched_filename'] + df['event_filename']
+            df.drop('event_filename', axis=1, inplace=True)
+            df.rename(columns={'watched_filename':'file_name'}, inplace=True)
+            modify_df = df[df['event_name'] == 'MODIFY']
+            file_names = modify_df['file_name'].value_counts().index.to_list()
+            info = []
+            for file_name in file_names:
+                last_access_step = ''
+                last_modify_step = ''
+                creation_step = ''
+                if df[(df['file_name'] == file_name) & (df['event_name'] == 'MODIFY')].shape[0] == 0: continue
+                last_modify_index = df[(df['file_name'] == file_name) & (df['event_name'] == 'MODIFY')].index.to_list()[-1]
+                last_access_index = 0
+                if df[(df['file_name'] == file_name) & (df['event_name'] == 'ACCESS')].shape[0] > 0:
+                    last_access_index = df[(df['file_name'] == file_name) & (df['event_name'] == 'ACCESS')].index.to_list()[-1]
+                else:
+                    last_access_index = -1
+                    last_access_step = 'Not provided'
+                if last_access_index < last_modify_index:
+                    try:
+                        creation_index = df[(df['file_name'] == file_name) & (df['event_name'] == 'CREATE')].index.to_list()[0]
+                    except:
+                        creation_index = -1
+                        creation_step = 'Not provided'
+                    for touch_file_name, (starting_index, ending_index) in steps.items():
+                        if (last_access_index > starting_index) & (last_access_index < ending_index):
+                            last_access_step = touch_file_name if touch_file_name == 'setup' else touch_file_name.split('_')[1]
+                        if (last_modify_index > starting_index) & (last_modify_index < ending_index):
+                            last_modify_step = touch_file_name if touch_file_name == 'setup' else touch_file_name.split('_')[1]
+                        if (creation_index > starting_index) & (creation_index < ending_index):
+                            creation_step = touch_file_name if touch_file_name == 'setup' else touch_file_name.split('_')[1]
+                    info.append({'file_name': file_name, 'last_access_index': last_access_index, 'last_modify_index': last_modify_index, 'creation_index': creation_index, 'last_access_step':last_access_step , 'last_modify_step':last_modify_step, 'creation_step': creation_step})
+            info_df = pd.DataFrame(info)
+            info_df.to_csv('/home/runner/info.csv')
+            os.mkdir('optimizing-ci-builds-ci-analysis')
+            info_df.to_csv('/home/runner/work/open-location-code/open-location-code/optimizing-ci-builds-ci-analysis/analysis.csv')
+      - name: Pushes analysis to another repository
+        id: push_directory
+        uses: cpina/github-action-push-to-another-repository@main
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+        with:
+          source-directory: 'optimizing-ci-builds-ci-analysis'
+          destination-github-username: 'optimizing-ci-builds'
+          destination-repository-name: 'ci-analyzes'
+          target-directory: 'open-location-code/.github/workflows/main/test-c'
         
   # C++ implementation. Lives in cpp/, tested with bazel.
   test-cpp:
@@ -19,11 +93,85 @@ jobs:
     env:
       OLC_PATH: cpp
     steps:
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas
+          pip install numpy
+      - run: sudo apt update
+      - run: sudo apt install inotify-tools
+      - run: inotifywait -mr /home/runner/work --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/test.csv & echo 'basak'
+      - run: touch starting_test-cpp_actionscheckout@v2_22
       - uses: actions/checkout@v2
+      - run: touch starting_test-cpp_test_23
       - name: test
         run: bazel test --test_output=all ${OLC_PATH}:all
+      - run: touch starting_test-cpp_checkformatting_25
       - name: check formatting
         run: cd ${OLC_PATH} && bash clang_check.sh
+      - uses: jannekem/run-python-script-action@v1
+        with:
+          script: |
+            import pandas as pd
+            import numpy as np
+            df = pd.read_csv('/home/runner/test.csv', sep = ';', names=['time', 'watched_filename', 'event_filename', 'event_name'])
+            df['event_filename'] = df['event_filename'].replace(np.nan, '')
+            steps = {}
+            starting_indexes = df[(df['event_filename'].str.contains('starting_')) & (df['event_name'] == 'CREATE')].index.to_list() + [df.shape[0]]
+            ending_indexes = [0] + df[(df['event_filename'].str.contains('starting_')) & (df['event_name'] == 'CLOSE_WRITE,CLOSE')].index.to_list()
+            starting_df = df[df['event_filename'].str.contains('starting_')]
+            touch_file_names = ['setup'] + [x.replace('starting_', '') for x in starting_df['event_filename'].value_counts().index.to_list()]
+            for starting_index, ending_index, touch_file_name in zip(starting_indexes, ending_indexes, touch_file_names):
+                steps[touch_file_name] = (ending_index, starting_index)
+            df['watched_filename'] = df['watched_filename'] + df['event_filename']
+            df.drop('event_filename', axis=1, inplace=True)
+            df.rename(columns={'watched_filename':'file_name'}, inplace=True)
+            modify_df = df[df['event_name'] == 'MODIFY']
+            file_names = modify_df['file_name'].value_counts().index.to_list()
+            info = []
+            for file_name in file_names:
+                last_access_step = ''
+                last_modify_step = ''
+                creation_step = ''
+                if df[(df['file_name'] == file_name) & (df['event_name'] == 'MODIFY')].shape[0] == 0: continue
+                last_modify_index = df[(df['file_name'] == file_name) & (df['event_name'] == 'MODIFY')].index.to_list()[-1]
+                last_access_index = 0
+                if df[(df['file_name'] == file_name) & (df['event_name'] == 'ACCESS')].shape[0] > 0:
+                    last_access_index = df[(df['file_name'] == file_name) & (df['event_name'] == 'ACCESS')].index.to_list()[-1]
+                else:
+                    last_access_index = -1
+                    last_access_step = 'Not provided'
+                if last_access_index < last_modify_index:
+                    try:
+                        creation_index = df[(df['file_name'] == file_name) & (df['event_name'] == 'CREATE')].index.to_list()[0]
+                    except:
+                        creation_index = -1
+                        creation_step = 'Not provided'
+                    for touch_file_name, (starting_index, ending_index) in steps.items():
+                        if (last_access_index > starting_index) & (last_access_index < ending_index):
+                            last_access_step = touch_file_name if touch_file_name == 'setup' else touch_file_name.split('_')[1]
+                        if (last_modify_index > starting_index) & (last_modify_index < ending_index):
+                            last_modify_step = touch_file_name if touch_file_name == 'setup' else touch_file_name.split('_')[1]
+                        if (creation_index > starting_index) & (creation_index < ending_index):
+                            creation_step = touch_file_name if touch_file_name == 'setup' else touch_file_name.split('_')[1]
+                    info.append({'file_name': file_name, 'last_access_index': last_access_index, 'last_modify_index': last_modify_index, 'creation_index': creation_index, 'last_access_step':last_access_step , 'last_modify_step':last_modify_step, 'creation_step': creation_step})
+            info_df = pd.DataFrame(info)
+            info_df.to_csv('/home/runner/info.csv')
+            os.mkdir('optimizing-ci-builds-ci-analysis')
+            info_df.to_csv('/home/runner/work/open-location-code/open-location-code/optimizing-ci-builds-ci-analysis/analysis.csv')
+      - name: Pushes analysis to another repository
+        id: push_directory
+        uses: cpina/github-action-push-to-another-repository@main
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+        with:
+          source-directory: 'optimizing-ci-builds-ci-analysis'
+          destination-github-username: 'optimizing-ci-builds'
+          destination-repository-name: 'ci-analyzes'
+          target-directory: 'open-location-code/.github/workflows/main/test-cpp'
         
   # Dart implementation. Lives in dart/.
   test-dart:
@@ -31,12 +179,86 @@ jobs:
     env:
       OLC_PATH: dart
     steps:
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas
+          pip install numpy
+      - run: sudo apt update
+      - run: sudo apt install inotify-tools
+      - run: inotifywait -mr /home/runner/work --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/test.csv & echo 'basak'
+      - run: touch starting_test-dart_actionscheckout@v2_34
       - uses: actions/checkout@v2
+      - run: touch starting_test-dart_dart-langsetup-dart@v1_35
       - uses: dart-lang/setup-dart@v1
+      - run: touch starting_test-dart_test_36
       - name: test
         run: |
           cd ${OLC_PATH}
           pub get && pub run test
+      - uses: jannekem/run-python-script-action@v1
+        with:
+          script: |
+            import pandas as pd
+            import numpy as np
+            df = pd.read_csv('/home/runner/test.csv', sep = ';', names=['time', 'watched_filename', 'event_filename', 'event_name'])
+            df['event_filename'] = df['event_filename'].replace(np.nan, '')
+            steps = {}
+            starting_indexes = df[(df['event_filename'].str.contains('starting_')) & (df['event_name'] == 'CREATE')].index.to_list() + [df.shape[0]]
+            ending_indexes = [0] + df[(df['event_filename'].str.contains('starting_')) & (df['event_name'] == 'CLOSE_WRITE,CLOSE')].index.to_list()
+            starting_df = df[df['event_filename'].str.contains('starting_')]
+            touch_file_names = ['setup'] + [x.replace('starting_', '') for x in starting_df['event_filename'].value_counts().index.to_list()]
+            for starting_index, ending_index, touch_file_name in zip(starting_indexes, ending_indexes, touch_file_names):
+                steps[touch_file_name] = (ending_index, starting_index)
+            df['watched_filename'] = df['watched_filename'] + df['event_filename']
+            df.drop('event_filename', axis=1, inplace=True)
+            df.rename(columns={'watched_filename':'file_name'}, inplace=True)
+            modify_df = df[df['event_name'] == 'MODIFY']
+            file_names = modify_df['file_name'].value_counts().index.to_list()
+            info = []
+            for file_name in file_names:
+                last_access_step = ''
+                last_modify_step = ''
+                creation_step = ''
+                if df[(df['file_name'] == file_name) & (df['event_name'] == 'MODIFY')].shape[0] == 0: continue
+                last_modify_index = df[(df['file_name'] == file_name) & (df['event_name'] == 'MODIFY')].index.to_list()[-1]
+                last_access_index = 0
+                if df[(df['file_name'] == file_name) & (df['event_name'] == 'ACCESS')].shape[0] > 0:
+                    last_access_index = df[(df['file_name'] == file_name) & (df['event_name'] == 'ACCESS')].index.to_list()[-1]
+                else:
+                    last_access_index = -1
+                    last_access_step = 'Not provided'
+                if last_access_index < last_modify_index:
+                    try:
+                        creation_index = df[(df['file_name'] == file_name) & (df['event_name'] == 'CREATE')].index.to_list()[0]
+                    except:
+                        creation_index = -1
+                        creation_step = 'Not provided'
+                    for touch_file_name, (starting_index, ending_index) in steps.items():
+                        if (last_access_index > starting_index) & (last_access_index < ending_index):
+                            last_access_step = touch_file_name if touch_file_name == 'setup' else touch_file_name.split('_')[1]
+                        if (last_modify_index > starting_index) & (last_modify_index < ending_index):
+                            last_modify_step = touch_file_name if touch_file_name == 'setup' else touch_file_name.split('_')[1]
+                        if (creation_index > starting_index) & (creation_index < ending_index):
+                            creation_step = touch_file_name if touch_file_name == 'setup' else touch_file_name.split('_')[1]
+                    info.append({'file_name': file_name, 'last_access_index': last_access_index, 'last_modify_index': last_modify_index, 'creation_index': creation_index, 'last_access_step':last_access_step , 'last_modify_step':last_modify_step, 'creation_step': creation_step})
+            info_df = pd.DataFrame(info)
+            info_df.to_csv('/home/runner/info.csv')
+            os.mkdir('optimizing-ci-builds-ci-analysis')
+            info_df.to_csv('/home/runner/work/open-location-code/open-location-code/optimizing-ci-builds-ci-analysis/analysis.csv')
+      - name: Pushes analysis to another repository
+        id: push_directory
+        uses: cpina/github-action-push-to-another-repository@main
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+        with:
+          source-directory: 'optimizing-ci-builds-ci-analysis'
+          destination-github-username: 'optimizing-ci-builds'
+          destination-repository-name: 'ci-analyzes'
+          target-directory: 'open-location-code/.github/workflows/main/test-dart'
           bash checks.sh
 
   # Go implementation. Lives in go/. Tests fail if files have not been formatted with gofmt.
@@ -45,19 +267,94 @@ jobs:
     env:
       OLC_PATH: go
     steps:
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas
+          pip install numpy
+      - run: sudo apt update
+      - run: sudo apt install inotify-tools
+      - run: inotifywait -mr /home/runner/work --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/test.csv & echo 'basak'
+    - run: touch starting_test-go_actionscheckout@v2_48
     - uses: actions/checkout@v2
+    - run: touch starting_test-go_actionssetup-go@v2_49
     - uses: actions/setup-go@v2
       with:
         go-version: 1.17
+    - run: touch starting_test-go_test_52
     - name: test
       run: |
         cd ${OLC_PATH}
         diff -u <(echo -n) <(gofmt -d -s ./)
         go test -bench=. ./ -v
+    - run: touch starting_test-go_test-gridserver_57
     - name: test-gridserver
       run: |
         cd tile_server/gridserver
         go test ./ -v
+      - uses: jannekem/run-python-script-action@v1
+        with:
+          script: |
+            import pandas as pd
+            import numpy as np
+            df = pd.read_csv('/home/runner/test.csv', sep = ';', names=['time', 'watched_filename', 'event_filename', 'event_name'])
+            df['event_filename'] = df['event_filename'].replace(np.nan, '')
+            steps = {}
+            starting_indexes = df[(df['event_filename'].str.contains('starting_')) & (df['event_name'] == 'CREATE')].index.to_list() + [df.shape[0]]
+            ending_indexes = [0] + df[(df['event_filename'].str.contains('starting_')) & (df['event_name'] == 'CLOSE_WRITE,CLOSE')].index.to_list()
+            starting_df = df[df['event_filename'].str.contains('starting_')]
+            touch_file_names = ['setup'] + [x.replace('starting_', '') for x in starting_df['event_filename'].value_counts().index.to_list()]
+            for starting_index, ending_index, touch_file_name in zip(starting_indexes, ending_indexes, touch_file_names):
+                steps[touch_file_name] = (ending_index, starting_index)
+            df['watched_filename'] = df['watched_filename'] + df['event_filename']
+            df.drop('event_filename', axis=1, inplace=True)
+            df.rename(columns={'watched_filename':'file_name'}, inplace=True)
+            modify_df = df[df['event_name'] == 'MODIFY']
+            file_names = modify_df['file_name'].value_counts().index.to_list()
+            info = []
+            for file_name in file_names:
+                last_access_step = ''
+                last_modify_step = ''
+                creation_step = ''
+                if df[(df['file_name'] == file_name) & (df['event_name'] == 'MODIFY')].shape[0] == 0: continue
+                last_modify_index = df[(df['file_name'] == file_name) & (df['event_name'] == 'MODIFY')].index.to_list()[-1]
+                last_access_index = 0
+                if df[(df['file_name'] == file_name) & (df['event_name'] == 'ACCESS')].shape[0] > 0:
+                    last_access_index = df[(df['file_name'] == file_name) & (df['event_name'] == 'ACCESS')].index.to_list()[-1]
+                else:
+                    last_access_index = -1
+                    last_access_step = 'Not provided'
+                if last_access_index < last_modify_index:
+                    try:
+                        creation_index = df[(df['file_name'] == file_name) & (df['event_name'] == 'CREATE')].index.to_list()[0]
+                    except:
+                        creation_index = -1
+                        creation_step = 'Not provided'
+                    for touch_file_name, (starting_index, ending_index) in steps.items():
+                        if (last_access_index > starting_index) & (last_access_index < ending_index):
+                            last_access_step = touch_file_name if touch_file_name == 'setup' else touch_file_name.split('_')[1]
+                        if (last_modify_index > starting_index) & (last_modify_index < ending_index):
+                            last_modify_step = touch_file_name if touch_file_name == 'setup' else touch_file_name.split('_')[1]
+                        if (creation_index > starting_index) & (creation_index < ending_index):
+                            creation_step = touch_file_name if touch_file_name == 'setup' else touch_file_name.split('_')[1]
+                    info.append({'file_name': file_name, 'last_access_index': last_access_index, 'last_modify_index': last_modify_index, 'creation_index': creation_index, 'last_access_step':last_access_step , 'last_modify_step':last_modify_step, 'creation_step': creation_step})
+            info_df = pd.DataFrame(info)
+            info_df.to_csv('/home/runner/info.csv')
+            os.mkdir('optimizing-ci-builds-ci-analysis')
+            info_df.to_csv('/home/runner/work/open-location-code/open-location-code/optimizing-ci-builds-ci-analysis/analysis.csv')
+      - name: Pushes analysis to another repository
+        id: push_directory
+        uses: cpina/github-action-push-to-another-repository@main
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+        with:
+          source-directory: 'optimizing-ci-builds-ci-analysis'
+          destination-github-username: 'optimizing-ci-builds'
+          destination-repository-name: 'ci-analyzes'
+          target-directory: 'open-location-code/.github/workflows/main/test-go'
         
   # Java implementation. Lives in java/, tested with bazel and maven.     
   test-java:
@@ -69,14 +366,88 @@ jobs:
         java: [ '8', '11', '16', '17' ]
     name: test-java-${{ matrix.java }}
     steps:
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas
+          pip install numpy
+      - run: sudo apt update
+      - run: sudo apt install inotify-tools
+      - run: inotifywait -mr /home/runner/work --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/test.csv & echo 'basak'
+      - run: touch starting_test-java_actionscheckout@v2_72
       - uses: actions/checkout@v2
+      - run: touch starting_test-java_Setupjava_73
       - name: Setup java
         uses: actions/setup-java@v2
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.java }}
+      - run: touch starting_test-java_test_78
       - name: test
         run: bazel test --test_output=all ${OLC_PATH}:all && cd ${OLC_PATH} && mvn package
+      - uses: jannekem/run-python-script-action@v1
+        with:
+          script: |
+            import pandas as pd
+            import numpy as np
+            df = pd.read_csv('/home/runner/test.csv', sep = ';', names=['time', 'watched_filename', 'event_filename', 'event_name'])
+            df['event_filename'] = df['event_filename'].replace(np.nan, '')
+            steps = {}
+            starting_indexes = df[(df['event_filename'].str.contains('starting_')) & (df['event_name'] == 'CREATE')].index.to_list() + [df.shape[0]]
+            ending_indexes = [0] + df[(df['event_filename'].str.contains('starting_')) & (df['event_name'] == 'CLOSE_WRITE,CLOSE')].index.to_list()
+            starting_df = df[df['event_filename'].str.contains('starting_')]
+            touch_file_names = ['setup'] + [x.replace('starting_', '') for x in starting_df['event_filename'].value_counts().index.to_list()]
+            for starting_index, ending_index, touch_file_name in zip(starting_indexes, ending_indexes, touch_file_names):
+                steps[touch_file_name] = (ending_index, starting_index)
+            df['watched_filename'] = df['watched_filename'] + df['event_filename']
+            df.drop('event_filename', axis=1, inplace=True)
+            df.rename(columns={'watched_filename':'file_name'}, inplace=True)
+            modify_df = df[df['event_name'] == 'MODIFY']
+            file_names = modify_df['file_name'].value_counts().index.to_list()
+            info = []
+            for file_name in file_names:
+                last_access_step = ''
+                last_modify_step = ''
+                creation_step = ''
+                if df[(df['file_name'] == file_name) & (df['event_name'] == 'MODIFY')].shape[0] == 0: continue
+                last_modify_index = df[(df['file_name'] == file_name) & (df['event_name'] == 'MODIFY')].index.to_list()[-1]
+                last_access_index = 0
+                if df[(df['file_name'] == file_name) & (df['event_name'] == 'ACCESS')].shape[0] > 0:
+                    last_access_index = df[(df['file_name'] == file_name) & (df['event_name'] == 'ACCESS')].index.to_list()[-1]
+                else:
+                    last_access_index = -1
+                    last_access_step = 'Not provided'
+                if last_access_index < last_modify_index:
+                    try:
+                        creation_index = df[(df['file_name'] == file_name) & (df['event_name'] == 'CREATE')].index.to_list()[0]
+                    except:
+                        creation_index = -1
+                        creation_step = 'Not provided'
+                    for touch_file_name, (starting_index, ending_index) in steps.items():
+                        if (last_access_index > starting_index) & (last_access_index < ending_index):
+                            last_access_step = touch_file_name if touch_file_name == 'setup' else touch_file_name.split('_')[1]
+                        if (last_modify_index > starting_index) & (last_modify_index < ending_index):
+                            last_modify_step = touch_file_name if touch_file_name == 'setup' else touch_file_name.split('_')[1]
+                        if (creation_index > starting_index) & (creation_index < ending_index):
+                            creation_step = touch_file_name if touch_file_name == 'setup' else touch_file_name.split('_')[1]
+                    info.append({'file_name': file_name, 'last_access_index': last_access_index, 'last_modify_index': last_modify_index, 'creation_index': creation_index, 'last_access_step':last_access_step , 'last_modify_step':last_modify_step, 'creation_step': creation_step})
+            info_df = pd.DataFrame(info)
+            info_df.to_csv('/home/runner/info.csv')
+            os.mkdir('optimizing-ci-builds-ci-analysis')
+            info_df.to_csv('/home/runner/work/open-location-code/open-location-code/optimizing-ci-builds-ci-analysis/analysis.csv')
+      - name: Pushes analysis to another repository
+        id: push_directory
+        uses: cpina/github-action-push-to-another-repository@main
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+        with:
+          source-directory: 'optimizing-ci-builds-ci-analysis'
+          destination-github-username: 'optimizing-ci-builds'
+          destination-repository-name: 'ci-analyzes'
+          target-directory: 'open-location-code/.github/workflows/main/test-java'
         
   # Javascript Closure library implementation. Lives in js/closure, tested with bazel.  
   test-js-closure:
@@ -84,10 +455,83 @@ jobs:
     env:
       OLC_PATH: js/closure
     steps:
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas
+          pip install numpy
+      - run: sudo apt update
+      - run: sudo apt install inotify-tools
+      - run: inotifywait -mr /home/runner/work --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/test.csv & echo 'basak'
+      - run: touch starting_test-js-closure_actionscheckout@v2_87
       - uses: actions/checkout@v2
+      - run: touch starting_test-js-closure_test_88
       - name: test
         run: |
           bazel test ${OLC_PATH}:all
+      - uses: jannekem/run-python-script-action@v1
+        with:
+          script: |
+            import pandas as pd
+            import numpy as np
+            df = pd.read_csv('/home/runner/test.csv', sep = ';', names=['time', 'watched_filename', 'event_filename', 'event_name'])
+            df['event_filename'] = df['event_filename'].replace(np.nan, '')
+            steps = {}
+            starting_indexes = df[(df['event_filename'].str.contains('starting_')) & (df['event_name'] == 'CREATE')].index.to_list() + [df.shape[0]]
+            ending_indexes = [0] + df[(df['event_filename'].str.contains('starting_')) & (df['event_name'] == 'CLOSE_WRITE,CLOSE')].index.to_list()
+            starting_df = df[df['event_filename'].str.contains('starting_')]
+            touch_file_names = ['setup'] + [x.replace('starting_', '') for x in starting_df['event_filename'].value_counts().index.to_list()]
+            for starting_index, ending_index, touch_file_name in zip(starting_indexes, ending_indexes, touch_file_names):
+                steps[touch_file_name] = (ending_index, starting_index)
+            df['watched_filename'] = df['watched_filename'] + df['event_filename']
+            df.drop('event_filename', axis=1, inplace=True)
+            df.rename(columns={'watched_filename':'file_name'}, inplace=True)
+            modify_df = df[df['event_name'] == 'MODIFY']
+            file_names = modify_df['file_name'].value_counts().index.to_list()
+            info = []
+            for file_name in file_names:
+                last_access_step = ''
+                last_modify_step = ''
+                creation_step = ''
+                if df[(df['file_name'] == file_name) & (df['event_name'] == 'MODIFY')].shape[0] == 0: continue
+                last_modify_index = df[(df['file_name'] == file_name) & (df['event_name'] == 'MODIFY')].index.to_list()[-1]
+                last_access_index = 0
+                if df[(df['file_name'] == file_name) & (df['event_name'] == 'ACCESS')].shape[0] > 0:
+                    last_access_index = df[(df['file_name'] == file_name) & (df['event_name'] == 'ACCESS')].index.to_list()[-1]
+                else:
+                    last_access_index = -1
+                    last_access_step = 'Not provided'
+                if last_access_index < last_modify_index:
+                    try:
+                        creation_index = df[(df['file_name'] == file_name) & (df['event_name'] == 'CREATE')].index.to_list()[0]
+                    except:
+                        creation_index = -1
+                        creation_step = 'Not provided'
+                    for touch_file_name, (starting_index, ending_index) in steps.items():
+                        if (last_access_index > starting_index) & (last_access_index < ending_index):
+                            last_access_step = touch_file_name if touch_file_name == 'setup' else touch_file_name.split('_')[1]
+                        if (last_modify_index > starting_index) & (last_modify_index < ending_index):
+                            last_modify_step = touch_file_name if touch_file_name == 'setup' else touch_file_name.split('_')[1]
+                        if (creation_index > starting_index) & (creation_index < ending_index):
+                            creation_step = touch_file_name if touch_file_name == 'setup' else touch_file_name.split('_')[1]
+                    info.append({'file_name': file_name, 'last_access_index': last_access_index, 'last_modify_index': last_modify_index, 'creation_index': creation_index, 'last_access_step':last_access_step , 'last_modify_step':last_modify_step, 'creation_step': creation_step})
+            info_df = pd.DataFrame(info)
+            info_df.to_csv('/home/runner/info.csv')
+            os.mkdir('optimizing-ci-builds-ci-analysis')
+            info_df.to_csv('/home/runner/work/open-location-code/open-location-code/optimizing-ci-builds-ci-analysis/analysis.csv')
+      - name: Pushes analysis to another repository
+        id: push_directory
+        uses: cpina/github-action-push-to-another-repository@main
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+        with:
+          source-directory: 'optimizing-ci-builds-ci-analysis'
+          destination-github-username: 'optimizing-ci-builds'
+          destination-repository-name: 'ci-analyzes'
+          target-directory: 'open-location-code/.github/workflows/main/test-js-closure'
           cd js && npm install && ./node_modules/.bin/eslint closure/*js
 
   # Javascript implementation. Lives in js/.
@@ -96,11 +540,84 @@ jobs:
     env:
       OLC_PATH: js
     steps:
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas
+          pip install numpy
+      - run: sudo apt update
+      - run: sudo apt install inotify-tools
+      - run: inotifywait -mr /home/runner/work --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/test.csv & echo 'basak'
+      - run: touch starting_test-js_actionscheckout@v2_99
       - uses: actions/checkout@v2
+      - run: touch starting_test-js_test_100
       - name: test
         run: |
           cd ${OLC_PATH}
           bash checks.sh
+      - uses: jannekem/run-python-script-action@v1
+        with:
+          script: |
+            import pandas as pd
+            import numpy as np
+            df = pd.read_csv('/home/runner/test.csv', sep = ';', names=['time', 'watched_filename', 'event_filename', 'event_name'])
+            df['event_filename'] = df['event_filename'].replace(np.nan, '')
+            steps = {}
+            starting_indexes = df[(df['event_filename'].str.contains('starting_')) & (df['event_name'] == 'CREATE')].index.to_list() + [df.shape[0]]
+            ending_indexes = [0] + df[(df['event_filename'].str.contains('starting_')) & (df['event_name'] == 'CLOSE_WRITE,CLOSE')].index.to_list()
+            starting_df = df[df['event_filename'].str.contains('starting_')]
+            touch_file_names = ['setup'] + [x.replace('starting_', '') for x in starting_df['event_filename'].value_counts().index.to_list()]
+            for starting_index, ending_index, touch_file_name in zip(starting_indexes, ending_indexes, touch_file_names):
+                steps[touch_file_name] = (ending_index, starting_index)
+            df['watched_filename'] = df['watched_filename'] + df['event_filename']
+            df.drop('event_filename', axis=1, inplace=True)
+            df.rename(columns={'watched_filename':'file_name'}, inplace=True)
+            modify_df = df[df['event_name'] == 'MODIFY']
+            file_names = modify_df['file_name'].value_counts().index.to_list()
+            info = []
+            for file_name in file_names:
+                last_access_step = ''
+                last_modify_step = ''
+                creation_step = ''
+                if df[(df['file_name'] == file_name) & (df['event_name'] == 'MODIFY')].shape[0] == 0: continue
+                last_modify_index = df[(df['file_name'] == file_name) & (df['event_name'] == 'MODIFY')].index.to_list()[-1]
+                last_access_index = 0
+                if df[(df['file_name'] == file_name) & (df['event_name'] == 'ACCESS')].shape[0] > 0:
+                    last_access_index = df[(df['file_name'] == file_name) & (df['event_name'] == 'ACCESS')].index.to_list()[-1]
+                else:
+                    last_access_index = -1
+                    last_access_step = 'Not provided'
+                if last_access_index < last_modify_index:
+                    try:
+                        creation_index = df[(df['file_name'] == file_name) & (df['event_name'] == 'CREATE')].index.to_list()[0]
+                    except:
+                        creation_index = -1
+                        creation_step = 'Not provided'
+                    for touch_file_name, (starting_index, ending_index) in steps.items():
+                        if (last_access_index > starting_index) & (last_access_index < ending_index):
+                            last_access_step = touch_file_name if touch_file_name == 'setup' else touch_file_name.split('_')[1]
+                        if (last_modify_index > starting_index) & (last_modify_index < ending_index):
+                            last_modify_step = touch_file_name if touch_file_name == 'setup' else touch_file_name.split('_')[1]
+                        if (creation_index > starting_index) & (creation_index < ending_index):
+                            creation_step = touch_file_name if touch_file_name == 'setup' else touch_file_name.split('_')[1]
+                    info.append({'file_name': file_name, 'last_access_index': last_access_index, 'last_modify_index': last_modify_index, 'creation_index': creation_index, 'last_access_step':last_access_step , 'last_modify_step':last_modify_step, 'creation_step': creation_step})
+            info_df = pd.DataFrame(info)
+            info_df.to_csv('/home/runner/info.csv')
+            os.mkdir('optimizing-ci-builds-ci-analysis')
+            info_df.to_csv('/home/runner/work/open-location-code/open-location-code/optimizing-ci-builds-ci-analysis/analysis.csv')
+      - name: Pushes analysis to another repository
+        id: push_directory
+        uses: cpina/github-action-push-to-another-repository@main
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+        with:
+          source-directory: 'optimizing-ci-builds-ci-analysis'
+          destination-github-username: 'optimizing-ci-builds'
+          destination-repository-name: 'ci-analyzes'
+          target-directory: 'open-location-code/.github/workflows/main/test-js'
           
   # Python implementation. Lives in python/, tested with bazel.
   test-python:
@@ -112,13 +629,28 @@ jobs:
         python: [ '2.7', '3.6', '3.7', '3.8' ]
     name: test-python-${{ matrix.python }}
     steps:
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas
+          pip install numpy
+      - run: sudo apt update
+      - run: sudo apt install inotify-tools
+      - run: inotifywait -mr /home/runner/work --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/test.csv & echo 'basak'
+      - run: touch starting_test-python_actionscheckout@v2_115
       - uses: actions/checkout@v2
+      - run: touch starting_test-python_SetupPython_116
       - name: Set up Python 
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python }}
+      - run: touch starting_test-python_test_120
       - name: test
         run: bazel test --test_output=all ${OLC_PATH}:all
+      - run: touch starting_test-python_checkformatting_122
       - name: check formatting
         run: |
           cd ${OLC_PATH}
@@ -133,6 +665,66 @@ jobs:
             echo "$DIFF"
           fi
           exit 1
+      - uses: jannekem/run-python-script-action@v1
+        with:
+          script: |
+            import pandas as pd
+            import numpy as np
+            df = pd.read_csv('/home/runner/test.csv', sep = ';', names=['time', 'watched_filename', 'event_filename', 'event_name'])
+            df['event_filename'] = df['event_filename'].replace(np.nan, '')
+            steps = {}
+            starting_indexes = df[(df['event_filename'].str.contains('starting_')) & (df['event_name'] == 'CREATE')].index.to_list() + [df.shape[0]]
+            ending_indexes = [0] + df[(df['event_filename'].str.contains('starting_')) & (df['event_name'] == 'CLOSE_WRITE,CLOSE')].index.to_list()
+            starting_df = df[df['event_filename'].str.contains('starting_')]
+            touch_file_names = ['setup'] + [x.replace('starting_', '') for x in starting_df['event_filename'].value_counts().index.to_list()]
+            for starting_index, ending_index, touch_file_name in zip(starting_indexes, ending_indexes, touch_file_names):
+                steps[touch_file_name] = (ending_index, starting_index)
+            df['watched_filename'] = df['watched_filename'] + df['event_filename']
+            df.drop('event_filename', axis=1, inplace=True)
+            df.rename(columns={'watched_filename':'file_name'}, inplace=True)
+            modify_df = df[df['event_name'] == 'MODIFY']
+            file_names = modify_df['file_name'].value_counts().index.to_list()
+            info = []
+            for file_name in file_names:
+                last_access_step = ''
+                last_modify_step = ''
+                creation_step = ''
+                if df[(df['file_name'] == file_name) & (df['event_name'] == 'MODIFY')].shape[0] == 0: continue
+                last_modify_index = df[(df['file_name'] == file_name) & (df['event_name'] == 'MODIFY')].index.to_list()[-1]
+                last_access_index = 0
+                if df[(df['file_name'] == file_name) & (df['event_name'] == 'ACCESS')].shape[0] > 0:
+                    last_access_index = df[(df['file_name'] == file_name) & (df['event_name'] == 'ACCESS')].index.to_list()[-1]
+                else:
+                    last_access_index = -1
+                    last_access_step = 'Not provided'
+                if last_access_index < last_modify_index:
+                    try:
+                        creation_index = df[(df['file_name'] == file_name) & (df['event_name'] == 'CREATE')].index.to_list()[0]
+                    except:
+                        creation_index = -1
+                        creation_step = 'Not provided'
+                    for touch_file_name, (starting_index, ending_index) in steps.items():
+                        if (last_access_index > starting_index) & (last_access_index < ending_index):
+                            last_access_step = touch_file_name if touch_file_name == 'setup' else touch_file_name.split('_')[1]
+                        if (last_modify_index > starting_index) & (last_modify_index < ending_index):
+                            last_modify_step = touch_file_name if touch_file_name == 'setup' else touch_file_name.split('_')[1]
+                        if (creation_index > starting_index) & (creation_index < ending_index):
+                            creation_step = touch_file_name if touch_file_name == 'setup' else touch_file_name.split('_')[1]
+                    info.append({'file_name': file_name, 'last_access_index': last_access_index, 'last_modify_index': last_modify_index, 'creation_index': creation_index, 'last_access_step':last_access_step , 'last_modify_step':last_modify_step, 'creation_step': creation_step})
+            info_df = pd.DataFrame(info)
+            info_df.to_csv('/home/runner/info.csv')
+            os.mkdir('optimizing-ci-builds-ci-analysis')
+            info_df.to_csv('/home/runner/work/open-location-code/open-location-code/optimizing-ci-builds-ci-analysis/analysis.csv')
+      - name: Pushes analysis to another repository
+        id: push_directory
+        uses: cpina/github-action-push-to-another-repository@main
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+        with:
+          source-directory: 'optimizing-ci-builds-ci-analysis'
+          destination-github-username: 'optimizing-ci-builds'
+          destination-repository-name: 'ci-analyzes'
+          target-directory: 'open-location-code/.github/workflows/main/test-python'
           
   # Ruby implementation. Lives in ruby/.
   test-ruby:
@@ -140,15 +732,89 @@ jobs:
     env:
       OLC_PATH: ruby
     steps:
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas
+          pip install numpy
+      - run: sudo apt update
+      - run: sudo apt install inotify-tools
+      - run: inotifywait -mr /home/runner/work --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/test.csv & echo 'basak'
+      - run: touch starting_test-ruby_actionscheckout@v2_143
       - uses: actions/checkout@v2
+      - run: touch starting_test-ruby_rubysetup-ruby@v1_144
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '2.6'
+      - run: touch starting_test-ruby_test_147
       - name: test
         run: |
           gem install rubocop
           gem install test-unit
           cd ${OLC_PATH} && ruby test/plus_codes_test.rb
+      - uses: jannekem/run-python-script-action@v1
+        with:
+          script: |
+            import pandas as pd
+            import numpy as np
+            df = pd.read_csv('/home/runner/test.csv', sep = ';', names=['time', 'watched_filename', 'event_filename', 'event_name'])
+            df['event_filename'] = df['event_filename'].replace(np.nan, '')
+            steps = {}
+            starting_indexes = df[(df['event_filename'].str.contains('starting_')) & (df['event_name'] == 'CREATE')].index.to_list() + [df.shape[0]]
+            ending_indexes = [0] + df[(df['event_filename'].str.contains('starting_')) & (df['event_name'] == 'CLOSE_WRITE,CLOSE')].index.to_list()
+            starting_df = df[df['event_filename'].str.contains('starting_')]
+            touch_file_names = ['setup'] + [x.replace('starting_', '') for x in starting_df['event_filename'].value_counts().index.to_list()]
+            for starting_index, ending_index, touch_file_name in zip(starting_indexes, ending_indexes, touch_file_names):
+                steps[touch_file_name] = (ending_index, starting_index)
+            df['watched_filename'] = df['watched_filename'] + df['event_filename']
+            df.drop('event_filename', axis=1, inplace=True)
+            df.rename(columns={'watched_filename':'file_name'}, inplace=True)
+            modify_df = df[df['event_name'] == 'MODIFY']
+            file_names = modify_df['file_name'].value_counts().index.to_list()
+            info = []
+            for file_name in file_names:
+                last_access_step = ''
+                last_modify_step = ''
+                creation_step = ''
+                if df[(df['file_name'] == file_name) & (df['event_name'] == 'MODIFY')].shape[0] == 0: continue
+                last_modify_index = df[(df['file_name'] == file_name) & (df['event_name'] == 'MODIFY')].index.to_list()[-1]
+                last_access_index = 0
+                if df[(df['file_name'] == file_name) & (df['event_name'] == 'ACCESS')].shape[0] > 0:
+                    last_access_index = df[(df['file_name'] == file_name) & (df['event_name'] == 'ACCESS')].index.to_list()[-1]
+                else:
+                    last_access_index = -1
+                    last_access_step = 'Not provided'
+                if last_access_index < last_modify_index:
+                    try:
+                        creation_index = df[(df['file_name'] == file_name) & (df['event_name'] == 'CREATE')].index.to_list()[0]
+                    except:
+                        creation_index = -1
+                        creation_step = 'Not provided'
+                    for touch_file_name, (starting_index, ending_index) in steps.items():
+                        if (last_access_index > starting_index) & (last_access_index < ending_index):
+                            last_access_step = touch_file_name if touch_file_name == 'setup' else touch_file_name.split('_')[1]
+                        if (last_modify_index > starting_index) & (last_modify_index < ending_index):
+                            last_modify_step = touch_file_name if touch_file_name == 'setup' else touch_file_name.split('_')[1]
+                        if (creation_index > starting_index) & (creation_index < ending_index):
+                            creation_step = touch_file_name if touch_file_name == 'setup' else touch_file_name.split('_')[1]
+                    info.append({'file_name': file_name, 'last_access_index': last_access_index, 'last_modify_index': last_modify_index, 'creation_index': creation_index, 'last_access_step':last_access_step , 'last_modify_step':last_modify_step, 'creation_step': creation_step})
+            info_df = pd.DataFrame(info)
+            info_df.to_csv('/home/runner/info.csv')
+            os.mkdir('optimizing-ci-builds-ci-analysis')
+            info_df.to_csv('/home/runner/work/open-location-code/open-location-code/optimizing-ci-builds-ci-analysis/analysis.csv')
+      - name: Pushes analysis to another repository
+        id: push_directory
+        uses: cpina/github-action-push-to-another-repository@main
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+        with:
+          source-directory: 'optimizing-ci-builds-ci-analysis'
+          destination-github-username: 'optimizing-ci-builds'
+          destination-repository-name: 'ci-analyzes'
+          target-directory: 'open-location-code/.github/workflows/main/test-ruby'
           rubocop --config rubocop.yml
 
   # Rust implementation. Lives in rust/.
@@ -157,10 +823,84 @@ jobs:
     env:
       OLC_PATH: rust
     steps:
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas
+          pip install numpy
+      - run: sudo apt update
+      - run: sudo apt install inotify-tools
+      - run: inotifywait -mr /home/runner/work --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/test.csv & echo 'basak'
+      - run: touch starting_test-rust_actionscheckout@v2_160
       - uses: actions/checkout@v2
+      - run: touch starting_test-rust_test_161
       - name: test
         run: |
           cd ${OLC_PATH}
           cargo fmt --all -- --check
           cargo build
           cargo test -- --nocapture
+      - uses: jannekem/run-python-script-action@v1
+        with:
+          script: |
+            import pandas as pd
+            import numpy as np
+            df = pd.read_csv('/home/runner/test.csv', sep = ';', names=['time', 'watched_filename', 'event_filename', 'event_name'])
+            df['event_filename'] = df['event_filename'].replace(np.nan, '')
+            steps = {}
+            starting_indexes = df[(df['event_filename'].str.contains('starting_')) & (df['event_name'] == 'CREATE')].index.to_list() + [df.shape[0]]
+            ending_indexes = [0] + df[(df['event_filename'].str.contains('starting_')) & (df['event_name'] == 'CLOSE_WRITE,CLOSE')].index.to_list()
+            starting_df = df[df['event_filename'].str.contains('starting_')]
+            touch_file_names = ['setup'] + [x.replace('starting_', '') for x in starting_df['event_filename'].value_counts().index.to_list()]
+            for starting_index, ending_index, touch_file_name in zip(starting_indexes, ending_indexes, touch_file_names):
+                steps[touch_file_name] = (ending_index, starting_index)
+            df['watched_filename'] = df['watched_filename'] + df['event_filename']
+            df.drop('event_filename', axis=1, inplace=True)
+            df.rename(columns={'watched_filename':'file_name'}, inplace=True)
+            modify_df = df[df['event_name'] == 'MODIFY']
+            file_names = modify_df['file_name'].value_counts().index.to_list()
+            info = []
+            for file_name in file_names:
+                last_access_step = ''
+                last_modify_step = ''
+                creation_step = ''
+                if df[(df['file_name'] == file_name) & (df['event_name'] == 'MODIFY')].shape[0] == 0: continue
+                last_modify_index = df[(df['file_name'] == file_name) & (df['event_name'] == 'MODIFY')].index.to_list()[-1]
+                last_access_index = 0
+                if df[(df['file_name'] == file_name) & (df['event_name'] == 'ACCESS')].shape[0] > 0:
+                    last_access_index = df[(df['file_name'] == file_name) & (df['event_name'] == 'ACCESS')].index.to_list()[-1]
+                else:
+                    last_access_index = -1
+                    last_access_step = 'Not provided'
+                if last_access_index < last_modify_index:
+                    try:
+                        creation_index = df[(df['file_name'] == file_name) & (df['event_name'] == 'CREATE')].index.to_list()[0]
+                    except:
+                        creation_index = -1
+                        creation_step = 'Not provided'
+                    for touch_file_name, (starting_index, ending_index) in steps.items():
+                        if (last_access_index > starting_index) & (last_access_index < ending_index):
+                            last_access_step = touch_file_name if touch_file_name == 'setup' else touch_file_name.split('_')[1]
+                        if (last_modify_index > starting_index) & (last_modify_index < ending_index):
+                            last_modify_step = touch_file_name if touch_file_name == 'setup' else touch_file_name.split('_')[1]
+                        if (creation_index > starting_index) & (creation_index < ending_index):
+                            creation_step = touch_file_name if touch_file_name == 'setup' else touch_file_name.split('_')[1]
+                    info.append({'file_name': file_name, 'last_access_index': last_access_index, 'last_modify_index': last_modify_index, 'creation_index': creation_index, 'last_access_step':last_access_step , 'last_modify_step':last_modify_step, 'creation_step': creation_step})
+            info_df = pd.DataFrame(info)
+            info_df.to_csv('/home/runner/info.csv')
+            os.mkdir('optimizing-ci-builds-ci-analysis')
+            info_df.to_csv('/home/runner/work/open-location-code/open-location-code/optimizing-ci-builds-ci-analysis/analysis.csv')
+      - name: Pushes analysis to another repository
+        id: push_directory
+        uses: cpina/github-action-push-to-another-repository@main
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+        with:
+          source-directory: 'optimizing-ci-builds-ci-analysis'
+          destination-github-username: 'optimizing-ci-builds'
+          destination-repository-name: 'ci-analyzes'
+          target-directory: 'open-location-code/.github/workflows/main/test-rust'
+
