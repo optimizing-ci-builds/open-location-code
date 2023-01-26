@@ -4,10 +4,10 @@ name: CI
 - pull_request
 - workflow_dispatch
 jobs:
-  test-c:
+  test-cpp:
     runs-on: ubuntu-latest
     env:
-      OLC_PATH: c
+      OLC_PATH: cpp
     steps:
     - uses: actions/checkout@v2
     - name: test
