@@ -1,166 +1,884 @@
 name: CI
-on: [push, pull_request, workflow_dispatch]
+on: [push]
+- push
+- pull_request
+- workflow_dispatch
 jobs:
-  # C implementation. Lives in c/, tested with bazel.
   test-c:
     runs-on: ubuntu-latest
     env:
       OLC_PATH: c
     steps:
-      - uses: actions/checkout@v2
-      - name: test
-        run: bazel test --test_output=all ${OLC_PATH}:all
-      - name: check formatting
-        run: cd ${OLC_PATH} && bash clang_check.sh
-        
-  # C++ implementation. Lives in cpp/, tested with bazel.
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.10'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas
+        pip install numpy
+    - run: sudo apt update
+    - run: sudo apt install inotify-tools
+    - run: inotifywait -mr /home/runner/work/open-location-code/open-location-code/ --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/inotify-logs.csv & echo 'basak'
+    - run: touch starting_testc_uses-checkout_12
+    - run: rm starting_testc_uses-checkout_12
+    - uses: actions/checkout@v2
+    - run: touch starting_testc_test_13
+    - run: rm starting_testc_test_13
+    - name: test
+      run: bazel test --test_output=all ${OLC_PATH}:all
+    - run: touch starting_testc_checkformatting_15
+    - run: rm starting_testc_checkformatting_15
+    - name: check formatting
+      run: cd ${OLC_PATH} && bash clang_check.sh
+    - run: touch starting_finished_finished_8979874
+      if: always()
+    - run: rm starting_finished_finished_8979874
+      if: always()
+    - name: Execute py script # run file
+      if: always()
+      run: |
+        python .github/workflows/script.py
+    - name: Pushes analysis to another repository
+      if: always()
+      id: push_directory
+      uses: cpina/github-action-push-to-another-repository@main
+      env:
+        API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+      with:
+        source-directory: 'optimizing-ci-builds-ci-analysis'
+        destination-github-username: 'UT-SE-Research'
+        destination-repository-name: 'ci-analyzes'
+        target-branch: '1675896667'
+        target-directory: 'open-location-code/.github/workflows/main/testc'
   test-cpp:
     runs-on: ubuntu-latest
     env:
       OLC_PATH: cpp
     steps:
-      - uses: actions/checkout@v2
-      - name: test
-        run: bazel test --test_output=all ${OLC_PATH}:all
-      - name: check formatting
-        run: cd ${OLC_PATH} && bash clang_check.sh
-        
-  # Dart implementation. Lives in dart/.
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.10'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas
+        pip install numpy
+    - run: sudo apt update
+    - run: sudo apt install inotify-tools
+    - run: inotifywait -mr /home/runner/work/open-location-code/open-location-code/ --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/inotify-logs.csv & echo 'basak'
+    - run: touch starting_testcpp_uses-checkout_22
+    - run: rm starting_testcpp_uses-checkout_22
+    - uses: actions/checkout@v2
+    - run: touch starting_testcpp_test_23
+    - run: rm starting_testcpp_test_23
+    - name: test
+      run: bazel test --test_output=all ${OLC_PATH}:all
+    - run: touch starting_testcpp_checkformatting_25
+    - run: rm starting_testcpp_checkformatting_25
+    - name: check formatting
+      run: cd ${OLC_PATH} && bash clang_check.sh
+    - run: touch starting_finished_finished_8979874
+      if: always()
+    - run: rm starting_finished_finished_8979874
+      if: always()
+    - name: Execute py script # run file
+      if: always()
+      run: |
+        python .github/workflows/script.py
+    - name: Pushes analysis to another repository
+      if: always()
+      id: push_directory
+      uses: cpina/github-action-push-to-another-repository@main
+      env:
+        API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+      with:
+        source-directory: 'optimizing-ci-builds-ci-analysis'
+        destination-github-username: 'UT-SE-Research'
+        destination-repository-name: 'ci-analyzes'
+        target-branch: '1675896667'
+        target-directory: 'open-location-code/.github/workflows/main/testcpp'
   test-dart:
     runs-on: ubuntu-latest
     env:
       OLC_PATH: dart
     steps:
-      - uses: actions/checkout@v2
-      - uses: dart-lang/setup-dart@v1
-      - name: test
-        run: |
-          cd ${OLC_PATH}
-          pub get && pub run test
-          bash checks.sh
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.10'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas
+        pip install numpy
+    - run: sudo apt update
+    - run: sudo apt install inotify-tools
+    - run: inotifywait -mr /home/runner/work/open-location-code/open-location-code/ --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/inotify-logs.csv & echo 'basak'
+    - run: touch starting_testdart_uses-checkout_32
+    - run: rm starting_testdart_uses-checkout_32
+    - uses: actions/checkout@v2
+    - run: touch starting_testdart_uses-setup-dart_33
+    - run: rm starting_testdart_uses-setup-dart_33
+    - uses: dart-lang/setup-dart@v1
+    - run: touch starting_testdart_test_34
+    - run: rm starting_testdart_test_34
+    - name: test
+      run: 'cd ${OLC_PATH}
 
-  # Go implementation. Lives in go/. Tests fail if files have not been formatted with gofmt.
+        pub get && pub run test
+
+        bash checks.sh
+
+        '
+    - run: touch starting_finished_finished_8979874
+      if: always()
+    - run: rm starting_finished_finished_8979874
+      if: always()
+    - name: Execute py script # run file
+      if: always()
+      run: |
+        python .github/workflows/script.py
+    - name: Pushes analysis to another repository
+      if: always()
+      id: push_directory
+      uses: cpina/github-action-push-to-another-repository@main
+      env:
+        API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+      with:
+        source-directory: 'optimizing-ci-builds-ci-analysis'
+        destination-github-username: 'UT-SE-Research'
+        destination-repository-name: 'ci-analyzes'
+        target-branch: '1675896667'
+        target-directory: 'open-location-code/.github/workflows/main/testdart'
   test-go:
     runs-on: ubuntu-latest
     env:
       OLC_PATH: go
     steps:
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.10'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas
+        pip install numpy
+    - run: sudo apt update
+    - run: sudo apt install inotify-tools
+    - run: inotifywait -mr /home/runner/work/open-location-code/open-location-code/ --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/inotify-logs.csv & echo 'basak'
+    - run: touch starting_testgo_uses-checkout_47
+    - run: rm starting_testgo_uses-checkout_47
     - uses: actions/checkout@v2
+    - run: touch starting_testgo_uses-setup-go_48
+    - run: rm starting_testgo_uses-setup-go_48
     - uses: actions/setup-go@v2
       with:
         go-version: 1.17
+    - run: touch starting_testgo_test_51
+    - run: rm starting_testgo_test_51
     - name: test
-      run: |
-        cd ${OLC_PATH}
+      run: 'cd ${OLC_PATH}
+
         diff -u <(echo -n) <(gofmt -d -s ./)
+
         go test -bench=. ./ -v
+
+        '
+    - run: touch starting_testgo_testgridserver_59
+    - run: rm starting_testgo_testgridserver_59
     - name: test-gridserver
-      run: |
-        cd tile_server/gridserver
+      run: 'cd tile_server/gridserver
+
         go test ./ -v
-        
-  # Java implementation. Lives in java/, tested with bazel and maven.     
-  test-java:
-    runs-on: ubuntu-latest
-    env:
-      OLC_PATH: java
-    strategy:
-      matrix:
-        java: [ '8', '11', '16', '17' ]
-    name: test-java-${{ matrix.java }}
-    steps:
-      - uses: actions/checkout@v2
-      - name: Setup java
-        uses: actions/setup-java@v2
-        with:
-          distribution: 'temurin'
-          java-version: ${{ matrix.java }}
-      - name: test
-        run: bazel test --test_output=all ${OLC_PATH}:all && cd ${OLC_PATH} && mvn package
-        
-  # Javascript Closure library implementation. Lives in js/closure, tested with bazel.  
+
+        '
+    - run: touch starting_finished_finished_8979874
+      if: always()
+    - run: rm starting_finished_finished_8979874
+      if: always()
+    - name: Execute py script # run file
+      if: always()
+      run: |
+        python .github/workflows/script.py
+    - name: Pushes analysis to another repository
+      if: always()
+      id: push_directory
+      uses: cpina/github-action-push-to-another-repository@main
+      env:
+        API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+      with:
+        source-directory: 'optimizing-ci-builds-ci-analysis'
+        destination-github-username: 'UT-SE-Research'
+        destination-repository-name: 'ci-analyzes'
+        target-branch: '1675896667'
+        target-directory: 'open-location-code/.github/workflows/main/testgo'
   test-js-closure:
     runs-on: ubuntu-latest
     env:
       OLC_PATH: js/closure
     steps:
-      - uses: actions/checkout@v2
-      - name: test
-        run: |
-          bazel test ${OLC_PATH}:all
-          cd js && npm install && ./node_modules/.bin/eslint closure/*js
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.10'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas
+        pip install numpy
+    - run: sudo apt update
+    - run: sudo apt install inotify-tools
+    - run: inotifywait -mr /home/runner/work/open-location-code/open-location-code/ --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/inotify-logs.csv & echo 'basak'
+    - run: touch starting_testjsclosure_uses-checkout_70
+    - run: rm starting_testjsclosure_uses-checkout_70
+    - uses: actions/checkout@v2
+    - run: touch starting_testjsclosure_test_71
+    - run: rm starting_testjsclosure_test_71
+    - name: test
+      run: 'bazel test ${OLC_PATH}:all
 
-  # Javascript implementation. Lives in js/.
+        cd js && npm install && ./node_modules/.bin/eslint closure/*js
+
+        '
+    - run: touch starting_finished_finished_8979874
+      if: always()
+    - run: rm starting_finished_finished_8979874
+      if: always()
+    - name: Execute py script # run file
+      if: always()
+      run: |
+        python .github/workflows/script.py
+    - name: Pushes analysis to another repository
+      if: always()
+      id: push_directory
+      uses: cpina/github-action-push-to-another-repository@main
+      env:
+        API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+      with:
+        source-directory: 'optimizing-ci-builds-ci-analysis'
+        destination-github-username: 'UT-SE-Research'
+        destination-repository-name: 'ci-analyzes'
+        target-branch: '1675896667'
+        target-directory: 'open-location-code/.github/workflows/main/testjsclosure'
   test-js:
     runs-on: ubuntu-latest
     env:
       OLC_PATH: js
     steps:
-      - uses: actions/checkout@v2
-      - name: test
-        run: |
-          cd ${OLC_PATH}
-          bash checks.sh
-          
-  # Python implementation. Lives in python/, tested with bazel.
-  test-python:
-    runs-on: ubuntu-latest
-    env:
-      OLC_PATH: python
-    strategy:
-      matrix:
-        python: [ '2.7', '3.6', '3.7', '3.8' ]
-    name: test-python-${{ matrix.python }}
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python 
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python }}
-      - name: test
-        run: bazel test --test_output=all ${OLC_PATH}:all
-      - name: check formatting
-        run: |
-          cd ${OLC_PATH}
-          pip install yapf
-          DIFF=`python -m yapf --diff *py`
-          if [ $? -eq 0 ]; then
-            echo -e "Python files are correctly formatted"
-            exit 0
-          else 
-            echo -e "Python files have formatting errors"
-            echo -e "These must be corrected using format_check.sh"
-            echo "$DIFF"
-          fi
-          exit 1
-          
-  # Ruby implementation. Lives in ruby/.
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.10'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas
+        pip install numpy
+    - run: sudo apt update
+    - run: sudo apt install inotify-tools
+    - run: inotifywait -mr /home/runner/work/open-location-code/open-location-code/ --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/inotify-logs.csv & echo 'basak'
+    - run: touch starting_testjs_uses-checkout_82
+    - run: rm starting_testjs_uses-checkout_82
+    - uses: actions/checkout@v2
+    - run: touch starting_testjs_test_83
+    - run: rm starting_testjs_test_83
+    - name: test
+      run: 'cd ${OLC_PATH}
+
+        bash checks.sh
+
+        '
+    - run: touch starting_finished_finished_8979874
+      if: always()
+    - run: rm starting_finished_finished_8979874
+      if: always()
+    - name: Execute py script # run file
+      if: always()
+      run: |
+        python .github/workflows/script.py
+    - name: Pushes analysis to another repository
+      if: always()
+      id: push_directory
+      uses: cpina/github-action-push-to-another-repository@main
+      env:
+        API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+      with:
+        source-directory: 'optimizing-ci-builds-ci-analysis'
+        destination-github-username: 'UT-SE-Research'
+        destination-repository-name: 'ci-analyzes'
+        target-branch: '1675896667'
+        target-directory: 'open-location-code/.github/workflows/main/testjs'
   test-ruby:
     runs-on: ubuntu-latest
     env:
       OLC_PATH: ruby
     steps:
-      - uses: actions/checkout@v2
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '2.6'
-      - name: test
-        run: |
-          gem install rubocop
-          gem install test-unit
-          cd ${OLC_PATH} && ruby test/plus_codes_test.rb
-          rubocop --config rubocop.yml
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.10'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas
+        pip install numpy
+    - run: sudo apt update
+    - run: sudo apt install inotify-tools
+    - run: inotifywait -mr /home/runner/work/open-location-code/open-location-code/ --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/inotify-logs.csv & echo 'basak'
+    - run: touch starting_testruby_uses-checkout_94
+    - run: rm starting_testruby_uses-checkout_94
+    - uses: actions/checkout@v2
+    - run: touch starting_testruby_uses-setup-ruby_95
+    - run: rm starting_testruby_uses-setup-ruby_95
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '2.6'
+    - run: touch starting_testruby_test_98
+    - run: rm starting_testruby_test_98
+    - name: test
+      run: 'gem install rubocop
 
-  # Rust implementation. Lives in rust/.
+        gem install test-unit
+
+        cd ${OLC_PATH} && ruby test/plus_codes_test.rb
+
+        rubocop --config rubocop.yml
+
+        '
+    - run: touch starting_finished_finished_8979874
+      if: always()
+    - run: rm starting_finished_finished_8979874
+      if: always()
+    - name: Execute py script # run file
+      if: always()
+      run: |
+        python .github/workflows/script.py
+    - name: Pushes analysis to another repository
+      if: always()
+      id: push_directory
+      uses: cpina/github-action-push-to-another-repository@main
+      env:
+        API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+      with:
+        source-directory: 'optimizing-ci-builds-ci-analysis'
+        destination-github-username: 'UT-SE-Research'
+        destination-repository-name: 'ci-analyzes'
+        target-branch: '1675896667'
+        target-directory: 'open-location-code/.github/workflows/main/testruby'
   test-rust:
     runs-on: ubuntu-latest
     env:
       OLC_PATH: rust
     steps:
-      - uses: actions/checkout@v2
-      - name: test
-        run: |
-          cd ${OLC_PATH}
-          cargo fmt --all -- --check
-          cargo build
-          cargo test -- --nocapture
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.10'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas
+        pip install numpy
+    - run: sudo apt update
+    - run: sudo apt install inotify-tools
+    - run: inotifywait -mr /home/runner/work/open-location-code/open-location-code/ --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/inotify-logs.csv & echo 'basak'
+    - run: touch starting_testrust_uses-checkout_113
+    - run: rm starting_testrust_uses-checkout_113
+    - uses: actions/checkout@v2
+    - run: touch starting_testrust_test_114
+    - run: rm starting_testrust_test_114
+    - name: test
+      run: 'cd ${OLC_PATH}
+
+        cargo fmt --all -- --check
+
+        cargo build
+
+        cargo test -- --nocapture
+
+        '
+    - run: touch starting_finished_finished_8979874
+      if: always()
+    - run: rm starting_finished_finished_8979874
+      if: always()
+    - name: Execute py script # run file
+      if: always()
+      run: |
+        python .github/workflows/script.py
+    - name: Pushes analysis to another repository
+      if: always()
+      id: push_directory
+      uses: cpina/github-action-push-to-another-repository@main
+      env:
+        API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+      with:
+        source-directory: 'optimizing-ci-builds-ci-analysis'
+        destination-github-username: 'UT-SE-Research'
+        destination-repository-name: 'ci-analyzes'
+        target-branch: '1675896667'
+        target-directory: 'open-location-code/.github/workflows/main/testrust'
+  test-java_java_8:
+    runs-on: ubuntu-latest
+    env:
+      OLC_PATH: java
+    strategy:
+      matrix:
+        java:
+        - '8'
+    name: test-java-${{ matrix.java }}
+    steps:
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.10'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas
+        pip install numpy
+    - run: sudo apt update
+    - run: sudo apt install inotify-tools
+    - run: inotifywait -mr /home/runner/work/open-location-code/open-location-code/ --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/inotify-logs.csv & echo 'basak'
+    - run: touch starting_testjavajava8_uses-checkout_134
+    - run: rm starting_testjavajava8_uses-checkout_134
+    - uses: actions/checkout@v2
+    - run: touch starting_testjavajava8_Setupjava_135
+    - run: rm starting_testjavajava8_Setupjava_135
+    - name: Setup java
+      uses: actions/setup-java@v2
+      with:
+        distribution: temurin
+        java-version: ${{ matrix.java }}
+    - run: touch starting_testjavajava8_test_140
+    - run: rm starting_testjavajava8_test_140
+    - name: test
+      run: bazel test --test_output=all ${OLC_PATH}:all && cd ${OLC_PATH} && mvn package
+    - run: touch starting_finished_finished_8979874
+      if: always()
+    - run: rm starting_finished_finished_8979874
+      if: always()
+    - name: Execute py script # run file
+      if: always()
+      run: |
+        python .github/workflows/script.py
+    - name: Pushes analysis to another repository
+      if: always()
+      id: push_directory
+      uses: cpina/github-action-push-to-another-repository@main
+      env:
+        API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+      with:
+        source-directory: 'optimizing-ci-builds-ci-analysis'
+        destination-github-username: 'UT-SE-Research'
+        destination-repository-name: 'ci-analyzes'
+        target-branch: '1675896667'
+        target-directory: 'open-location-code/.github/workflows/main/testjavajava8'
+  test-java_java_11:
+    runs-on: ubuntu-latest
+    env:
+      OLC_PATH: java
+    strategy:
+      matrix:
+        java:
+        - '11'
+    name: test-java-${{ matrix.java }}
+    steps:
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.10'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas
+        pip install numpy
+    - run: sudo apt update
+    - run: sudo apt install inotify-tools
+    - run: inotifywait -mr /home/runner/work/open-location-code/open-location-code/ --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/inotify-logs.csv & echo 'basak'
+    - run: touch starting_testjavajava11_uses-checkout_152
+    - run: rm starting_testjavajava11_uses-checkout_152
+    - uses: actions/checkout@v2
+    - run: touch starting_testjavajava11_Setupjava_153
+    - run: rm starting_testjavajava11_Setupjava_153
+    - name: Setup java
+      uses: actions/setup-java@v2
+      with:
+        distribution: temurin
+        java-version: ${{ matrix.java }}
+    - run: touch starting_testjavajava11_test_158
+    - run: rm starting_testjavajava11_test_158
+    - name: test
+      run: bazel test --test_output=all ${OLC_PATH}:all && cd ${OLC_PATH} && mvn package
+    - run: touch starting_finished_finished_8979874
+      if: always()
+    - run: rm starting_finished_finished_8979874
+      if: always()
+    - name: Execute py script # run file
+      if: always()
+      run: |
+        python .github/workflows/script.py
+    - name: Pushes analysis to another repository
+      if: always()
+      id: push_directory
+      uses: cpina/github-action-push-to-another-repository@main
+      env:
+        API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+      with:
+        source-directory: 'optimizing-ci-builds-ci-analysis'
+        destination-github-username: 'UT-SE-Research'
+        destination-repository-name: 'ci-analyzes'
+        target-branch: '1675896667'
+        target-directory: 'open-location-code/.github/workflows/main/testjavajava11'
+  test-java_java_16:
+    runs-on: ubuntu-latest
+    env:
+      OLC_PATH: java
+    strategy:
+      matrix:
+        java:
+        - '16'
+    name: test-java-${{ matrix.java }}
+    steps:
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.10'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas
+        pip install numpy
+    - run: sudo apt update
+    - run: sudo apt install inotify-tools
+    - run: inotifywait -mr /home/runner/work/open-location-code/open-location-code/ --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/inotify-logs.csv & echo 'basak'
+    - run: touch starting_testjavajava16_uses-checkout_170
+    - run: rm starting_testjavajava16_uses-checkout_170
+    - uses: actions/checkout@v2
+    - run: touch starting_testjavajava16_Setupjava_171
+    - run: rm starting_testjavajava16_Setupjava_171
+    - name: Setup java
+      uses: actions/setup-java@v2
+      with:
+        distribution: temurin
+        java-version: ${{ matrix.java }}
+    - run: touch starting_testjavajava16_test_176
+    - run: rm starting_testjavajava16_test_176
+    - name: test
+      run: bazel test --test_output=all ${OLC_PATH}:all && cd ${OLC_PATH} && mvn package
+    - run: touch starting_finished_finished_8979874
+      if: always()
+    - run: rm starting_finished_finished_8979874
+      if: always()
+    - name: Execute py script # run file
+      if: always()
+      run: |
+        python .github/workflows/script.py
+    - name: Pushes analysis to another repository
+      if: always()
+      id: push_directory
+      uses: cpina/github-action-push-to-another-repository@main
+      env:
+        API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+      with:
+        source-directory: 'optimizing-ci-builds-ci-analysis'
+        destination-github-username: 'UT-SE-Research'
+        destination-repository-name: 'ci-analyzes'
+        target-branch: '1675896667'
+        target-directory: 'open-location-code/.github/workflows/main/testjavajava16'
+  test-java_java_17:
+    runs-on: ubuntu-latest
+    env:
+      OLC_PATH: java
+    strategy:
+      matrix:
+        java:
+        - '17'
+    name: test-java-${{ matrix.java }}
+    steps:
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.10'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas
+        pip install numpy
+    - run: sudo apt update
+    - run: sudo apt install inotify-tools
+    - run: inotifywait -mr /home/runner/work/open-location-code/open-location-code/ --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/inotify-logs.csv & echo 'basak'
+    - run: touch starting_testjavajava17_uses-checkout_188
+    - run: rm starting_testjavajava17_uses-checkout_188
+    - uses: actions/checkout@v2
+    - run: touch starting_testjavajava17_Setupjava_189
+    - run: rm starting_testjavajava17_Setupjava_189
+    - name: Setup java
+      uses: actions/setup-java@v2
+      with:
+        distribution: temurin
+        java-version: ${{ matrix.java }}
+    - run: touch starting_testjavajava17_test_194
+    - run: rm starting_testjavajava17_test_194
+    - name: test
+      run: bazel test --test_output=all ${OLC_PATH}:all && cd ${OLC_PATH} && mvn package
+    - run: touch starting_finished_finished_8979874
+      if: always()
+    - run: rm starting_finished_finished_8979874
+      if: always()
+    - name: Execute py script # run file
+      if: always()
+      run: |
+        python .github/workflows/script.py
+    - name: Pushes analysis to another repository
+      if: always()
+      id: push_directory
+      uses: cpina/github-action-push-to-another-repository@main
+      env:
+        API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+      with:
+        source-directory: 'optimizing-ci-builds-ci-analysis'
+        destination-github-username: 'UT-SE-Research'
+        destination-repository-name: 'ci-analyzes'
+        target-branch: '1675896667'
+        target-directory: 'open-location-code/.github/workflows/main/testjavajava17'
+  test-python_python_2.7:
+    runs-on: ubuntu-latest
+    env:
+      OLC_PATH: python
+    strategy:
+      matrix:
+        python:
+        - '2.7'
+    name: test-python-${{ matrix.python }}
+    steps:
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.10'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas
+        pip install numpy
+    - run: sudo apt update
+    - run: sudo apt install inotify-tools
+    - run: inotifywait -mr /home/runner/work/open-location-code/open-location-code/ --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/inotify-logs.csv & echo 'basak'
+    - run: touch starting_testpythonpython27_uses-checkout_206
+    - run: rm starting_testpythonpython27_uses-checkout_206
+    - uses: actions/checkout@v2
+    - run: touch starting_testpythonpython27_SetupPython_207
+    - run: rm starting_testpythonpython27_SetupPython_207
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python }}
+    - run: touch starting_testpythonpython27_test_211
+    - run: rm starting_testpythonpython27_test_211
+    - name: test
+      run: bazel test --test_output=all ${OLC_PATH}:all
+    - run: touch starting_testpythonpython27_checkformatting_213
+    - run: rm starting_testpythonpython27_checkformatting_213
+    - name: check formatting
+      run: "cd ${OLC_PATH}\npip install yapf\nDIFF=`python -m yapf --diff *py`\nif\
+        \ [ $? -eq 0 ]; then\n  echo -e \"Python files are correctly formatted\"\n\
+        \  exit 0\nelse \n  echo -e \"Python files have formatting errors\"\n  echo\
+        \ -e \"These must be corrected using format_check.sh\"\n  echo \"$DIFF\"\n\
+        fi\nexit 1\n"
+    - run: touch starting_finished_finished_8979874
+      if: always()
+    - run: rm starting_finished_finished_8979874
+      if: always()
+    - name: Execute py script # run file
+      if: always()
+      run: |
+        python .github/workflows/script.py
+    - name: Pushes analysis to another repository
+      if: always()
+      id: push_directory
+      uses: cpina/github-action-push-to-another-repository@main
+      env:
+        API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+      with:
+        source-directory: 'optimizing-ci-builds-ci-analysis'
+        destination-github-username: 'UT-SE-Research'
+        destination-repository-name: 'ci-analyzes'
+        target-branch: '1675896667'
+        target-directory: 'open-location-code/.github/workflows/main/testpythonpython27'
+  test-python_python_3.6:
+    runs-on: ubuntu-latest
+    env:
+      OLC_PATH: python
+    strategy:
+      matrix:
+        python:
+        - '3.6'
+    name: test-python-${{ matrix.python }}
+    steps:
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.10'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas
+        pip install numpy
+    - run: sudo apt update
+    - run: sudo apt install inotify-tools
+    - run: inotifywait -mr /home/runner/work/open-location-code/open-location-code/ --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/inotify-logs.csv & echo 'basak'
+    - run: touch starting_testpythonpython36_uses-checkout_229
+    - run: rm starting_testpythonpython36_uses-checkout_229
+    - uses: actions/checkout@v2
+    - run: touch starting_testpythonpython36_SetupPython_230
+    - run: rm starting_testpythonpython36_SetupPython_230
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python }}
+    - run: touch starting_testpythonpython36_test_234
+    - run: rm starting_testpythonpython36_test_234
+    - name: test
+      run: bazel test --test_output=all ${OLC_PATH}:all
+    - run: touch starting_testpythonpython36_checkformatting_236
+    - run: rm starting_testpythonpython36_checkformatting_236
+    - name: check formatting
+      run: "cd ${OLC_PATH}\npip install yapf\nDIFF=`python -m yapf --diff *py`\nif\
+        \ [ $? -eq 0 ]; then\n  echo -e \"Python files are correctly formatted\"\n\
+        \  exit 0\nelse \n  echo -e \"Python files have formatting errors\"\n  echo\
+        \ -e \"These must be corrected using format_check.sh\"\n  echo \"$DIFF\"\n\
+        fi\nexit 1\n"
+    - run: touch starting_finished_finished_8979874
+      if: always()
+    - run: rm starting_finished_finished_8979874
+      if: always()
+    - name: Execute py script # run file
+      if: always()
+      run: |
+        python .github/workflows/script.py
+    - name: Pushes analysis to another repository
+      if: always()
+      id: push_directory
+      uses: cpina/github-action-push-to-another-repository@main
+      env:
+        API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+      with:
+        source-directory: 'optimizing-ci-builds-ci-analysis'
+        destination-github-username: 'UT-SE-Research'
+        destination-repository-name: 'ci-analyzes'
+        target-branch: '1675896667'
+        target-directory: 'open-location-code/.github/workflows/main/testpythonpython36'
+  test-python_python_3.7:
+    runs-on: ubuntu-latest
+    env:
+      OLC_PATH: python
+    strategy:
+      matrix:
+        python:
+        - '3.7'
+    name: test-python-${{ matrix.python }}
+    steps:
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.10'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas
+        pip install numpy
+    - run: sudo apt update
+    - run: sudo apt install inotify-tools
+    - run: inotifywait -mr /home/runner/work/open-location-code/open-location-code/ --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/inotify-logs.csv & echo 'basak'
+    - run: touch starting_testpythonpython37_uses-checkout_252
+    - run: rm starting_testpythonpython37_uses-checkout_252
+    - uses: actions/checkout@v2
+    - run: touch starting_testpythonpython37_SetupPython_253
+    - run: rm starting_testpythonpython37_SetupPython_253
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python }}
+    - run: touch starting_testpythonpython37_test_257
+    - run: rm starting_testpythonpython37_test_257
+    - name: test
+      run: bazel test --test_output=all ${OLC_PATH}:all
+    - run: touch starting_testpythonpython37_checkformatting_259
+    - run: rm starting_testpythonpython37_checkformatting_259
+    - name: check formatting
+      run: "cd ${OLC_PATH}\npip install yapf\nDIFF=`python -m yapf --diff *py`\nif\
+        \ [ $? -eq 0 ]; then\n  echo -e \"Python files are correctly formatted\"\n\
+        \  exit 0\nelse \n  echo -e \"Python files have formatting errors\"\n  echo\
+        \ -e \"These must be corrected using format_check.sh\"\n  echo \"$DIFF\"\n\
+        fi\nexit 1\n"
+    - run: touch starting_finished_finished_8979874
+      if: always()
+    - run: rm starting_finished_finished_8979874
+      if: always()
+    - name: Execute py script # run file
+      if: always()
+      run: |
+        python .github/workflows/script.py
+    - name: Pushes analysis to another repository
+      if: always()
+      id: push_directory
+      uses: cpina/github-action-push-to-another-repository@main
+      env:
+        API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+      with:
+        source-directory: 'optimizing-ci-builds-ci-analysis'
+        destination-github-username: 'UT-SE-Research'
+        destination-repository-name: 'ci-analyzes'
+        target-branch: '1675896667'
+        target-directory: 'open-location-code/.github/workflows/main/testpythonpython37'
+  test-python_python_3.8:
+    runs-on: ubuntu-latest
+    env:
+      OLC_PATH: python
+    strategy:
+      matrix:
+        python:
+        - '3.8'
+    name: test-python-${{ matrix.python }}
+    steps:
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.10'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas
+        pip install numpy
+    - run: sudo apt update
+    - run: sudo apt install inotify-tools
+    - run: inotifywait -mr /home/runner/work/open-location-code/open-location-code/ --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/inotify-logs.csv & echo 'basak'
+    - run: touch starting_testpythonpython38_uses-checkout_275
+    - run: rm starting_testpythonpython38_uses-checkout_275
+    - uses: actions/checkout@v2
+    - run: touch starting_testpythonpython38_SetupPython_276
+    - run: rm starting_testpythonpython38_SetupPython_276
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python }}
+    - run: touch starting_testpythonpython38_test_280
+    - run: rm starting_testpythonpython38_test_280
+    - name: test
+      run: bazel test --test_output=all ${OLC_PATH}:all
+    - run: touch starting_testpythonpython38_checkformatting_282
+    - run: rm starting_testpythonpython38_checkformatting_282
+    - name: check formatting
+      run: "cd ${OLC_PATH}\npip install yapf\nDIFF=`python -m yapf --diff *py`\nif\
+        \ [ $? -eq 0 ]; then\n  echo -e \"Python files are correctly formatted\"\n\
+        \  exit 0\nelse \n  echo -e \"Python files have formatting errors\"\n  echo\
+        \ -e \"These must be corrected using format_check.sh\"\n  echo \"$DIFF\"\n\
+        fi\nexit 1\n"
+    - run: touch starting_finished_finished_8979874
+      if: always()
+    - run: rm starting_finished_finished_8979874
+      if: always()
+    - name: Execute py script # run file
+      if: always()
+      run: |
+        python .github/workflows/script.py
+    - name: Pushes analysis to another repository
+      if: always()
+      id: push_directory
+      uses: cpina/github-action-push-to-another-repository@main
+      env:
+        API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+      with:
+        source-directory: 'optimizing-ci-builds-ci-analysis'
+        destination-github-username: 'UT-SE-Research'
+        destination-repository-name: 'ci-analyzes'
+        target-branch: '1675896667'
+        target-directory: 'open-location-code/.github/workflows/main/testpythonpython38'
+
